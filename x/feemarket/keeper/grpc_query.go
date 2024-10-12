@@ -60,6 +60,6 @@ func (k Keeper) BlockGas(c context.Context, _ *types.QueryBlockGasRequest) (*typ
 	}
 
 	return &types.QueryBlockGasResponse{
-		Gas: int64(gas), //#nosec G115
+		Gas: int64(gas),
 	}, nil
 }

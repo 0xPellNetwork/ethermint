@@ -214,8 +214,6 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 
 	blockGasLimit := ethermint.BlockGasLimit(ctx)
 
-	// return error if the tx gas is greater than the block limit (max gas)
-
 	// NOTE: it's important here to use the gas wanted instead of the gas consumed
 	// from the tx gas pool. The later only has the value so far since the
 	// EthSetupContextDecorator so it will never exceed the block gas limit.

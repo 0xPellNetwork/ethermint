@@ -69,7 +69,7 @@ func (b *Backend) GetTransactionByHash(txHash common.Hash) (*rpctypes.RPCTransac
 		msgs := b.EthMsgsFromTendermintBlock(block, blockRes)
 		for i := range msgs {
 			if msgs[i].Hash == hexTx {
-				res.EthTxIndex = int32(i) //#nosec G115
+				res.EthTxIndex = int32(i)
 				break
 			}
 		}
@@ -194,16 +194,7 @@ func (b *Backend) GetTransactionReceipt(hash common.Hash) (map[string]interface{
 		return nil, err
 	}
 
-	// NOTE
-	// This patch applies only to the period when the chain-id was set to 9000 between the v8 and v8.1.1 versions of Canto.
-	// It is intended to ensure that reverted transaction receipt returns the same results instead of 'invalid chain id' error.
-	// The upgrade height for v8 is 10848200, and for v8.1.1, it is  10849447.
-	var from common.Address
-	if res.Height >= 10848200 && res.Height < 10849447 {
-		from, err = ethMsg.GetSender(big.NewInt(9000)) // 9000 is the default chain-id that was applied during that period.
-	} else {
-		from, err = ethMsg.GetSender(chainID.ToInt())
-	}
+	from, err := ethMsg.GetSender(chainID.ToInt())
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +210,7 @@ func (b *Backend) GetTransactionReceipt(hash common.Hash) (map[string]interface{
 		msgs := b.EthMsgsFromTendermintBlock(resBlock, blockRes)
 		for i := range msgs {
 			if msgs[i].Hash == hexTx {
-				res.EthTxIndex = int32(i) //#nosec G115
+				res.EthTxIndex = int32(i)
 				break
 			}
 		}
@@ -339,7 +330,7 @@ func (b *Backend) GetTxByEthHash(hash common.Hash) (*ethermint.TxResult, error) 
 // GetTxByTxIndex uses `/tx_query` to find transaction by tx index of valid ethereum txs
 func (b *Backend) GetTxByTxIndex(height int64, index uint) (*ethermint.TxResult, error) {
 	if b.indexer != nil {
-		return b.indexer.GetByBlockAndIndex(height, int32(index)) //#nosec G115
+		return b.indexer.GetByBlockAndIndex(height, int32(index))
 	}
 
 	// fallback to tendermint tx indexer
@@ -348,7 +339,7 @@ func (b *Backend) GetTxByTxIndex(height int64, index uint) (*ethermint.TxResult,
 		evmtypes.AttributeKeyTxIndex, index,
 	)
 	txResult, err := b.queryTendermintTxIndexer(query, func(txs *rpctypes.ParsedTxs) *rpctypes.ParsedTx {
-		return txs.GetTxByTxIndex(int(index)) //#nosec G115
+		return txs.GetTxByTxIndex(int(index))
 	})
 	if err != nil {
 		return nil, errorsmod.Wrapf(err, "GetTxByTxIndex %d %d", height, index)
@@ -407,7 +398,7 @@ func (b *Backend) GetTransactionByBlockAndIndex(block *tmrpctypes.ResultBlock, i
 			return nil, nil
 		}
 	} else {
-		i := int(idx) //#nosec G115
+		i := int(idx)
 		ethMsgs := b.EthMsgsFromTendermintBlock(block, blockRes)
 		if i >= len(ethMsgs) {
 			b.logger.Debug("block txs index out of bound", "index", i)

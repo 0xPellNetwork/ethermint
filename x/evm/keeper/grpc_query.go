@@ -578,7 +578,7 @@ func (k *Keeper) traceTx(
 
 	tCtx := &tracers.Context{
 		BlockHash: txConfig.BlockHash,
-		TxIndex:   int(txConfig.TxIndex), //#nosec G115
+		TxIndex:   int(txConfig.TxIndex),
 		TxHash:    txConfig.TxHash,
 	}
 

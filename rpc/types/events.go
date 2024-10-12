@@ -166,7 +166,7 @@ func ParseTxIndexerResult(txResult *tmrpctypes.ResultTx, tx sdk.Tx, getter func(
 	return &ethermint.TxResult{
 		Height:            txResult.Height,
 		TxIndex:           txResult.Index,
-		MsgIndex:          uint32(parsedTx.MsgIndex), //#nosec G115
+		MsgIndex:          uint32(parsedTx.MsgIndex),
 		EthTxIndex:        parsedTx.EthTxIndex,
 		Failed:            parsedTx.Failed,
 		GasUsed:           parsedTx.GasUsed,
@@ -251,7 +251,7 @@ func fillTxAttribute(tx *ParsedTx, key []byte, value []byte) error {
 		if err != nil {
 			return err
 		}
-		tx.EthTxIndex = int32(txIndex) //#nosec G115
+		tx.EthTxIndex = int32(txIndex)
 	case evmtypes.AttributeKeyTxGasUsed:
 		gasUsed, err := strconv.ParseUint(string(value), 10, 64)
 		if err != nil {

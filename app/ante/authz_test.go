@@ -396,7 +396,7 @@ func createMsgSend(testAddresses []sdk.AccAddress) *banktypes.MsgSend {
 	return banktypes.NewMsgSend(
 		testAddresses[0],
 		testAddresses[3],
-		sdk.NewCoins(sdk.NewInt64Coin(evmtypes.DefaultEVMDenom, 1e8)),
+		sdk.NewCoins(sdk.NewCoin(evmtypes.DefaultEVMDenom, sdkmath.NewInt(1e8))),
 	)
 }
 

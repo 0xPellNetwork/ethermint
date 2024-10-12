@@ -3,16 +3,21 @@
 import sources.nixpkgs {
   overlays = [
     (_: pkgs: {
-      flake-compat = import sources.flake-compat;
-      go = pkgs.go_1_22;
+      go = pkgs.go_1_21;
       go-ethereum = pkgs.callPackage ./go-ethereum.nix {
         inherit (pkgs.darwin) libobjc;
         inherit (pkgs.darwin.apple_sdk.frameworks) IOKit;
-        buildGoModule = pkgs.buildGo120Module;
+        buildGoModule = pkgs.buildGo121Module;
       };
     }) # update to a version that supports eip-1559
-    (import "${sources.poetry2nix}/overlay.nix")
-    (import "${sources.gomod2nix}/overlay.nix")
+    # https://github.com/NixOS/nixpkgs/pull/179622
+    (import ./go_1_21_overlay.nix)
+    (final: prev:
+      (import "${sources.gomod2nix}/overlay.nix")
+        (final // {
+          inherit (final.darwin.apple_sdk_11_0) callPackage;
+        })
+        prev)
     (pkgs: _:
       import ./scripts.nix {
         inherit pkgs;
@@ -22,13 +27,16 @@ import sources.nixpkgs {
           dotenv = builtins.path { name = "dotenv"; path = ../scripts/env; };
         };
       })
-    (_: pkgs: { test-env = pkgs.callPackage ./testenv.nix { }; })
+    (_: pkgs: { 
+      poetry2nix = pkgs.callPackage (sources.poetry2nix + "/default.nix") {};
+      test-env = pkgs.callPackage ./testenv.nix {}; 
+    })
     (_: pkgs: {
-      cosmovisor = pkgs.buildGo120Module rec {
+      cosmovisor = pkgs.buildGo121Module rec {
         name = "cosmovisor";
-        src = sources.cosmos-sdk + "/cosmovisor";
+        src = sources.cosmos-sdk + "/tools/cosmovisor";
         subPackages = [ "./cmd/cosmovisor" ];
-        vendorHash = "sha256-OAXWrwpartjgSP7oeNvDJ7cTR9lyYVNhEM8HUnv3acE=";
+        vendorHash = "sha256-ZACVsWHyyBS9EP4hsz6nLMUb6XCgIEryQYgvbpLDEgg=";
         doCheck = false;
       };
     })
