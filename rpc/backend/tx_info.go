@@ -22,7 +22,10 @@ import (
 	errorsmod "cosmossdk.io/errors"
 	tmrpcclient "github.com/cometbft/cometbft/rpc/client"
 	tmrpctypes "github.com/cometbft/cometbft/rpc/core/types"
+	"github.com/cosmos/cosmos-sdk/client"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/authz"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -144,6 +147,15 @@ func (b *Backend) GetGasUsed(res *ethermint.TxResult, price *big.Int, gas uint64
 	return res.GasUsed
 }
 
+func decodeAny(clientCtx client.Context, anyMsg *codectypes.Any) (sdk.Msg, error) {
+	var msg sdk.Msg
+	err := clientCtx.InterfaceRegistry.UnpackAny(anyMsg, &msg)
+	if err != nil {
+		return nil, err
+	}
+	return msg, nil
+}
+
 // GetTransactionReceipt returns the transaction receipt identified by hash.
 func (b *Backend) GetTransactionReceipt(hash common.Hash) (map[string]interface{}, error) {
 	hexTx := hash.Hex()
@@ -164,7 +176,36 @@ func (b *Backend) GetTransactionReceipt(hash common.Hash) (map[string]interface{
 		b.logger.Debug("decoding failed", "error", err.Error())
 		return nil, fmt.Errorf("failed to decode tx: %w", err)
 	}
-	ethMsg := tx.GetMsgs()[res.MsgIndex].(*evmtypes.MsgEthereumTx)
+
+	msg := tx.GetMsgs()[res.MsgIndex]
+
+	var ethMsg *evmtypes.MsgEthereumTx
+	switch realMsg := msg.(type) {
+	case *evmtypes.MsgEthereumTx:
+		ethMsg = realMsg
+
+	case *authz.MsgExec:
+		for _, anyMsg := range realMsg.Msgs {
+			subMsg, err := decodeAny(b.clientCtx, anyMsg)
+			if err != nil {
+				b.logger.Error("failed to decode sub message in authz.MsgExec", "error", err.Error())
+				continue
+			}
+			if candidateEthMsg, ok := subMsg.(*evmtypes.MsgEthereumTx); ok {
+				ethMsg = candidateEthMsg
+				break
+			}
+		}
+
+		if ethMsg == nil {
+			b.logger.Error("no MsgEthereumTx found in authz.MsgExec sub-messages")
+			return nil, fmt.Errorf("no MsgEthereumTx found in authz.MsgExec")
+		}
+
+	default:
+		b.logger.Error("unsupported message type", "type", fmt.Sprintf("%T", realMsg))
+		return nil, fmt.Errorf("unsupported message type: %T", realMsg)
+	}
 
 	txData, err := evmtypes.UnpackTxData(ethMsg.Data)
 	if err != nil {
